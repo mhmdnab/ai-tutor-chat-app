@@ -1,0 +1,33 @@
+{
+  "name": "discord-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@tailwindcss/typography": "^0.5.19",
+    "dompurify": "^3.3.1",
+    "isomorphic-dompurify": "^2.35.0",
+    "marked": "^17.0.1",
+    "matrix-js-sdk": "^39.4.0",
+    "next": "16.0.10",
+    "react": "19.2.1",
+    "react-dom": "19.2.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/dompurify": "^3.0.5",
+    "@types/marked": "^5.0.2",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.10",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
