@@ -12,10 +12,10 @@ export default function MessageActions({
   isOwnMessage,
 }: MessageActionsProps) {
   return (
-    <div className="absolute top-0 right-0 -mt-3 bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 rounded-xl shadow-2xl shadow-black/50 flex gap-1 p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 backdrop-blur-sm">
+    <div className="absolute top-0 right-0 -mt-3 bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 rounded-xl shadow-2xl shadow-black/50 flex gap-1 p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm scale-90 group-hover:scale-100">
       <button
         onClick={onReact}
-        className="p-2 hover:bg-indigo-600/20 hover:text-indigo-400 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95"
+        className="p-2 hover:bg-indigo-600/20 hover:text-indigo-400 rounded-lg transition-all duration-200 hover:scale-125 active:scale-95"
         title="Add reaction"
       >
         <svg
@@ -37,7 +37,7 @@ export default function MessageActions({
         <>
           <button
             onClick={onEdit}
-            className="p-2 hover:bg-indigo-600/20 hover:text-indigo-400 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95"
+            className="p-2 hover:bg-indigo-600/20 hover:text-indigo-400 rounded-lg transition-all duration-200 hover:scale-125 active:scale-95"
             title="Edit message"
           >
             <svg
@@ -57,7 +57,7 @@ export default function MessageActions({
 
           <button
             onClick={onDelete}
-            className="p-2 hover:bg-red-900/30 hover:text-red-400 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95"
+            className="p-2 hover:bg-red-900/30 hover:text-red-400 rounded-lg transition-all duration-200 hover:scale-125 active:scale-95"
             title="Delete message"
           >
             <svg

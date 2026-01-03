@@ -1,4 +1,4 @@
-import { Member } from '@/lib/matrix-client';
+import { Member } from '@/lib/custom-client';
 
 interface MentionPickerProps {
   members: Member[];

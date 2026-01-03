@@ -54,6 +54,14 @@ export interface Member {
   presence?: "online" | "offline" | "unavailable";
 }
 
+export interface Invitation {
+  roomId: string;
+  roomName: string;
+  inviter: string;
+  inviterName: string;
+  timestamp: number;
+}
+
 class MatrixClientManager {
   private client: sdk.MatrixClient | null = null;
   private userId: string | null = null;
@@ -64,6 +72,7 @@ class MatrixClientManager {
   public onTyping?: (roomId: string, users: string[]) => void;
   public onSyncState?: (state: string) => void;
   public onRoomDataUpdate?: (roomId: string) => void;
+  public onInvitation?: (invitations: Invitation[]) => void;
 
   async login(homeserverUrl: string, username: string, password: string) {
     try {
@@ -74,6 +83,8 @@ class MatrixClientManager {
         baseUrl: homeserverUrl,
         accessToken: response.access_token,
         userId: response.user_id,
+        // Enable encryption support with in-memory crypto store
+        cryptoStore: new sdk.MemoryCryptoStore(),
       });
 
       this.userId = response.user_id;
@@ -99,6 +110,8 @@ class MatrixClientManager {
       baseUrl: homeserverUrl,
       accessToken,
       userId,
+      // Enable encryption support with in-memory crypto store
+      cryptoStore: new sdk.MemoryCryptoStore(),
     });
 
     this.userId = userId;
@@ -111,12 +124,29 @@ class MatrixClientManager {
     if (!this.client) throw new Error("Client not initialized");
 
     this.setupEventListeners();
+
+    // Add error listener for sync errors
+    this.client.on("sync.unexpectedError" as any, (error: any) => {
+      console.error("Sync error:", error);
+    });
+
     await this.client.startClient({ initialSyncLimit: 10 });
 
-    return new Promise<void>((resolve) => {
-      this.client!.once("sync" as any, (state: string) => {
+    return new Promise<void>((resolve, reject) => {
+      // Add timeout to prevent infinite waiting
+      const timeout = setTimeout(() => {
+        reject(new Error("Sync timeout - server may be unavailable"));
+      }, 30000); // 30 second timeout
+
+      this.client!.once("sync" as any, (state: string, _prevState: string, data: any) => {
+        console.log("Sync state:", state);
+
         if (state === "PREPARED") {
+          clearTimeout(timeout);
           resolve();
+        } else if (state === "ERROR") {
+          clearTimeout(timeout);
+          reject(new Error("Sync failed: " + (data?.error?.message || "Unknown error")));
         }
       });
     });
@@ -180,6 +210,9 @@ class MatrixClientManager {
 
           const roomData = this.formatRoom(room);
           this.onMessage?.(message, roomData);
+
+          // Update room list to refresh unread counts
+          this.onRoomUpdate?.(this.getRooms());
         } else if (eventType === "m.reaction") {
           // Reaction added, trigger room data update
           this.onRoomDataUpdate?.(room.roomId);
@@ -208,6 +241,23 @@ class MatrixClientManager {
     });
 
     this.client.on("Room" as any, () => {
+      this.onRoomUpdate?.(this.getRooms());
+    });
+
+    // Listen for room membership changes (invitations)
+    this.client.on("RoomMember.membership" as any, (event: any, member: any) => {
+      if (!member) return;
+
+      // Check if this is an invitation for the current user
+      if (member.userId === this.userId && member.membership === "invite") {
+        // User received an invitation
+        this.onInvitation?.(this.getInvitations());
+      }
+    });
+
+    // Listen for read receipt events to update unread counts
+    this.client.on("Room.receipt" as any, () => {
+      // Update room list when read receipts change
       this.onRoomUpdate?.(this.getRooms());
     });
   }
@@ -375,6 +425,86 @@ class MatrixClientManager {
       }));
   }
 
+  // Invitation methods
+  getInvitations(): Invitation[] {
+    if (!this.client) return [];
+
+    const rooms = this.client.getRooms();
+    const invitations: Invitation[] = [];
+
+    rooms.forEach((room) => {
+      const member = room.getMember(this.userId!);
+      if (member && member.membership === "invite") {
+        const inviter = member.events.member?.getSender() || "unknown";
+        const inviterMember = room.getMember(inviter);
+
+        invitations.push({
+          roomId: room.roomId,
+          roomName: room.name || "Unnamed Room",
+          inviter,
+          inviterName: inviterMember?.name || inviter,
+          timestamp: member.events.member?.getTs() || Date.now(),
+        });
+      }
+    });
+
+    return invitations;
+  }
+
+  async inviteUserToRoom(roomId: string, userId: string) {
+    if (!this.client) throw new Error("Client not initialized");
+
+    await this.client.invite(roomId, userId);
+  }
+
+  async acceptInvitation(roomId: string) {
+    if (!this.client) throw new Error("Client not initialized");
+
+    await this.client.joinRoom(roomId);
+    // Trigger invitation update
+    this.onInvitation?.(this.getInvitations());
+  }
+
+  async rejectInvitation(roomId: string) {
+    if (!this.client) throw new Error("Client not initialized");
+
+    await this.client.leave(roomId);
+    // Trigger invitation update
+    this.onInvitation?.(this.getInvitations());
+  }
+
+  async leaveRoom(roomId: string) {
+    if (!this.client) throw new Error("Client not initialized");
+
+    // Leave the room
+    await this.client.leave(roomId);
+
+    // If it's a DM, remove it from m.direct account data
+    const directEvent = this.client.getAccountData("m.direct" as any);
+    if (directEvent) {
+      const directContent = directEvent.getContent();
+
+      // Find and remove this room from m.direct
+      for (const userId in directContent) {
+        const roomIds = directContent[userId];
+        if (Array.isArray(roomIds)) {
+          const index = roomIds.indexOf(roomId);
+          if (index !== -1) {
+            roomIds.splice(index, 1);
+            if (roomIds.length === 0) {
+              delete directContent[userId];
+            }
+            await this.client.setAccountData("m.direct" as any, directContent as any);
+            break;
+          }
+        }
+      }
+    }
+
+    // Trigger room list update
+    this.onRoomUpdate?.(this.getRooms());
+  }
+
   async createRoom(
     name: string,
     topic = "",
@@ -382,11 +512,14 @@ class MatrixClientManager {
   ): Promise<string> {
     if (!this.client) throw new Error("Client not initialized");
 
+    // Create room without encryption (encryption not supported in this client)
     const response = await this.client.createRoom({
       name,
       topic,
       visibility: (isPublic ? "public" : "private") as any,
       preset: (isPublic ? "public_chat" : "private_chat") as any,
+      // Don't enable encryption
+      initial_state: [],
     });
 
     return response.room_id;
@@ -395,12 +528,14 @@ class MatrixClientManager {
   async createDirectMessage(userId: string): Promise<string> {
     if (!this.client) throw new Error("Client not initialized");
 
-    // Create a private room for direct messaging
+    // Create a private room for direct messaging without encryption
     const response = await this.client.createRoom({
       visibility: "private" as any,
       preset: "trusted_private_chat" as any,
       is_direct: true,
       invite: [userId],
+      // Don't enable encryption
+      initial_state: [],
     });
 
     const roomId = response.room_id;
@@ -732,6 +867,39 @@ class MatrixClientManager {
     if (!this.client) throw new Error("Client not initialized");
 
     await this.client.redactEvent(roomId, eventId);
+  }
+
+  async markRoomAsRead(roomId: string) {
+    if (!this.client) throw new Error("Client not initialized");
+
+    const room = this.client.getRoom(roomId);
+    if (!room) return;
+
+    // Get the last event in the room's timeline
+    const timeline = room.getLiveTimeline();
+    const events = timeline.getEvents();
+
+    if (events.length === 0) return;
+
+    // Find the last message event (not state events or other types)
+    let lastMessageEvent = null;
+    for (let i = events.length - 1; i >= 0; i--) {
+      if (events[i].getType() === "m.room.message") {
+        lastMessageEvent = events[i];
+        break;
+      }
+    }
+
+    // If no message event found, use the last event
+    const lastEvent = lastMessageEvent || events[events.length - 1];
+
+    try {
+      // Send a read receipt for the last event
+      // This marks the room as read and clears the notification badge
+      await this.client.sendReadReceipt(lastEvent);
+    } catch (error) {
+      console.error("Failed to mark room as read:", error);
+    }
   }
 
   async getDisplayName(): Promise<string | null> {

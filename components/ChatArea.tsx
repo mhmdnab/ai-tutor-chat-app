@@ -1,12 +1,12 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { Room, Message, Member } from '@/lib/matrix-client';
-import MessageActions from './MessageActions';
-import ReactionPicker from './ReactionPicker';
-import EditMessageModal from './EditMessageModal';
-import MessageContent from './MessageContent';
-import MentionPicker from './MentionPicker';
-import ImagePreview from './ImagePreview';
-import { debounce, formatTypingUsers } from '@/lib/utils';
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Room, Message, Member } from "@/lib/custom-client";
+import MessageActions from "./MessageActions";
+import ReactionPicker from "./ReactionPicker";
+import EditMessageModal from "./EditMessageModal";
+import MessageContent from "./MessageContent";
+import MentionPicker from "./MentionPicker";
+import ImagePreview from "./ImagePreview";
+import { debounce, formatTypingUsers } from "@/lib/utils";
 
 interface ChatAreaProps {
   room: Room | undefined;
@@ -43,29 +43,35 @@ export default function ChatArea({
   onStartTyping,
   onStopTyping,
   getMediaUrl,
-  fetchAuthenticatedMedia
+  fetchAuthenticatedMedia,
 }: ChatAreaProps) {
-  const [inputMessage, setInputMessage] = useState('');
+  const [inputMessage, setInputMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null);
+  const [showReactionPicker, setShowReactionPicker] = useState<string | null>(
+    null
+  );
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [showTimestamps, setShowTimestamps] = useState(() => {
-    const saved = localStorage.getItem('showTimestamps');
-    return saved !== null ? saved === 'true' : true;
+    const saved = localStorage.getItem("showTimestamps");
+    return saved !== null ? saved === "true" : true;
   });
-  const [messageDisplay, setMessageDisplay] = useState<'comfortable' | 'compact'>(() => {
-    const saved = localStorage.getItem('messageDisplay') as 'comfortable' | 'compact';
-    return saved || 'comfortable';
+  const [messageDisplay, setMessageDisplay] = useState<
+    "comfortable" | "compact"
+  >(() => {
+    const saved = localStorage.getItem("messageDisplay") as
+      | "comfortable"
+      | "compact";
+    return saved || "comfortable";
   });
   const [showMentionPicker, setShowMentionPicker] = useState(false);
-  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionQuery, setMentionQuery] = useState("");
   const [mentionPosition, setMentionPosition] = useState({ x: 0, y: 0 });
   const [mentionStart, setMentionStart] = useState(0);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-  const [imagePreviewName, setImagePreviewName] = useState<string>('');
+  const [imagePreviewName, setImagePreviewName] = useState<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -77,14 +83,16 @@ export default function ChatArea({
 
   const handleCloseImagePreview = () => {
     setImagePreviewUrl(null);
-    setImagePreviewName('');
+    setImagePreviewName("");
   };
 
   // Debounced stop typing handler
-  const debouncedStopTyping = useMemo(() =>
-    debounce(() => {
-      onStopTyping();
-    }, 3000), [onStopTyping]
+  const debouncedStopTyping = useMemo(
+    () =>
+      debounce(() => {
+        onStopTyping();
+      }, 3000),
+    [onStopTyping]
   );
 
   // Handle input change with mention detection
@@ -104,12 +112,12 @@ export default function ChatArea({
 
     // Detect @ mention
     const textBeforeCursor = value.substring(0, cursorPos);
-    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    const lastAtIndex = textBeforeCursor.lastIndexOf("@");
 
     if (lastAtIndex !== -1 && lastAtIndex === cursorPos - 1) {
       // Just typed @
       setShowMentionPicker(true);
-      setMentionQuery('');
+      setMentionQuery("");
       setMentionStart(lastAtIndex);
 
       // Calculate position
@@ -118,7 +126,7 @@ export default function ChatArea({
     } else if (showMentionPicker && lastAtIndex !== -1) {
       // Typing after @
       const query = textBeforeCursor.substring(lastAtIndex + 1);
-      if (query.includes(' ')) {
+      if (query.includes(" ")) {
         setShowMentionPicker(false);
       } else {
         setMentionQuery(query);
@@ -131,8 +139,10 @@ export default function ChatArea({
   // Handle mention selection
   const handleMentionSelect = (member: Member) => {
     const before = inputMessage.substring(0, mentionStart);
-    const after = inputMessage.substring(mentionStart + mentionQuery.length + 1);
-    setInputMessage(before + '@' + member.displayName + ' ' + after);
+    const after = inputMessage.substring(
+      mentionStart + mentionQuery.length + 1
+    );
+    setInputMessage(before + "@" + member.displayName + " " + after);
     setShowMentionPicker(false);
     inputRef.current?.focus();
   };
@@ -140,23 +150,25 @@ export default function ChatArea({
   // Listen for storage changes (when settings are updated in another component)
   useEffect(() => {
     const handleStorageChange = () => {
-      const newTimestamps = localStorage.getItem('showTimestamps');
+      const newTimestamps = localStorage.getItem("showTimestamps");
       if (newTimestamps !== null) {
-        setShowTimestamps(newTimestamps === 'true');
+        setShowTimestamps(newTimestamps === "true");
       }
 
-      const newMessageDisplay = localStorage.getItem('messageDisplay') as 'comfortable' | 'compact';
+      const newMessageDisplay = localStorage.getItem("messageDisplay") as
+        | "comfortable"
+        | "compact";
       if (newMessageDisplay) {
         setMessageDisplay(newMessageDisplay);
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   // Cleanup blob URLs on unmount
@@ -184,13 +196,13 @@ export default function ChatArea({
         }
         // Reset file input
         if (fileInputRef.current) {
-          fileInputRef.current.value = '';
+          fileInputRef.current.value = "";
         }
         // Clear message if it was just used as a caption
-        setInputMessage('');
+        setInputMessage("");
       } catch (error) {
-        console.error('Failed to upload file:', error);
-        alert('Failed to upload file. Please try again.');
+        console.error("Failed to upload file:", error);
+        alert("Failed to upload file. Please try again.");
       } finally {
         setIsUploading(false);
       }
@@ -200,7 +212,7 @@ export default function ChatArea({
     // Otherwise send text message
     if (inputMessage.trim() && room) {
       onSendMessage(inputMessage);
-      setInputMessage('');
+      setInputMessage("");
     }
   };
 
@@ -211,12 +223,12 @@ export default function ChatArea({
     // Check file size (max 50MB)
     const maxSize = 50 * 1024 * 1024;
     if (file.size > maxSize) {
-      alert('File size must be less than 50MB');
+      alert("File size must be less than 50MB");
       return;
     }
 
     // Create preview for images
-    if (file.type.startsWith('image/')) {
+    if (file.type.startsWith("image/")) {
       const previewUrl = URL.createObjectURL(file);
       setFilePreviewUrl(previewUrl);
     }
@@ -225,7 +237,7 @@ export default function ChatArea({
 
     // Reset file input so the same file can be selected again
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
@@ -236,7 +248,7 @@ export default function ChatArea({
       setFilePreviewUrl(null);
     }
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
@@ -259,8 +271,12 @@ export default function ChatArea({
               />
             </svg>
           </div>
-          <h3 className="text-white text-xl font-bold mb-2">No Room Selected</h3>
-          <p className="text-gray-400 text-sm">Select a room from the sidebar to start chatting</p>
+          <h3 className="text-white text-xl font-bold mb-2">
+            No Room Selected
+          </h3>
+          <p className="text-gray-400 text-sm">
+            Select a room from the sidebar to start chatting
+          </p>
         </div>
       </div>
     );
@@ -277,8 +293,18 @@ export default function ChatArea({
             className="lg:hidden p-2 text-gray-400 hover:text-white hover:bg-gray-700/60 rounded-lg transition-all"
             aria-label="Toggle sidebar"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
             </svg>
           </button>
 
@@ -288,9 +314,13 @@ export default function ChatArea({
             </span>
           </div>
           <div className="min-w-0">
-            <h2 className="text-white font-bold text-base md:text-lg truncate">{room.name}</h2>
+            <h2 className="text-white font-bold text-base md:text-lg truncate">
+              {room.name}
+            </h2>
             {room.topic && (
-              <p className="text-gray-400 text-xs mt-0.5 truncate hidden sm:block">{room.topic}</p>
+              <p className="text-gray-400 text-xs mt-0.5 truncate hidden sm:block">
+                {room.topic}
+              </p>
             )}
           </div>
         </div>
@@ -301,61 +331,158 @@ export default function ChatArea({
           className="xl:hidden p-2 text-gray-400 hover:text-white hover:bg-gray-700/60 rounded-lg transition-all flex-shrink-0"
           aria-label="Toggle member list"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+            />
           </svg>
         </button>
       </div>
 
       {/* Messages Area */}
-      <div className={`flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 py-4 ${messageDisplay === 'compact' ? 'space-y-1' : 'space-y-4'}`}>
+      <div
+        className={`flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 py-4 ${
+          messageDisplay === "compact" ? "space-y-1" : "space-y-4"
+        } messages-container`}
+      >
         {messages.length === 0 ? (
-          <div className="text-center text-gray-400 py-8">
-            <p>No messages yet. Start the conversation!</p>
+          <div className="text-center text-gray-400 py-8 animate-in fade-in zoom-in duration-500">
+            <div className="w-20 h-20 mx-auto mb-4 bg-gray-800/50 rounded-full flex items-center justify-center">
+              <svg
+                className="w-10 h-10"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
+              </svg>
+            </div>
+            <p className="text-lg font-medium">No messages yet</p>
+            <p className="text-sm mt-1">Start the conversation!</p>
           </div>
         ) : (
           messages.map((message, index) => {
-            const showAvatar = index === 0 || messages[index - 1].sender !== message.sender;
-            const isOwnMessage = message.sender === localStorage.getItem('matrix_user_id');
-            const isMentioned = message.mentions?.includes(currentUserId || '');
+            const showAvatar =
+              index === 0 || messages[index - 1].sender !== message.sender;
+            const isOwnMessage =
+              message.sender === currentUserId ||
+              message.sender === localStorage.getItem("matrix_user_id");
+            const isMentioned = message.mentions?.includes(currentUserId || "");
 
             return (
               <div
                 key={`${message.eventId}-${index}`}
-                className={`flex ${messageDisplay === 'compact' ? 'gap-3' : 'gap-4'} group relative hover:bg-gray-800/60 -mx-3 px-4 ${messageDisplay === 'compact' ? 'py-1' : 'py-2.5'} rounded-lg transition-all duration-200 hover:shadow-md ${isMentioned ? 'bg-indigo-900/20 border-l-2 border-indigo-500 pl-3' : ''}`}
+                className={`flex ${
+                  messageDisplay === "compact" ? "gap-3" : "gap-4"
+                } group relative hover:bg-gray-800/60 -mx-3 px-4 ${
+                  messageDisplay === "compact" ? "py-1" : "py-2.5"
+                } rounded-lg transition-all duration-300 hover:shadow-md hover:scale-[1.01] ${
+                  isMentioned
+                    ? "bg-indigo-900/20 border-l-2 border-indigo-500 pl-3"
+                    : ""
+                } animate-in slide-in-from-bottom-2 fade-in duration-300`}
+                style={{ animationDelay: `${Math.min(index * 20, 500)}ms` }}
               >
                 {showAvatar ? (
-                  <div className={`${messageDisplay === 'compact' ? 'w-9 h-9' : 'w-11 h-11'} rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-900/30`}>
-                    <span className={`text-white font-bold ${messageDisplay === 'compact' ? 'text-sm' : 'text-base'}`}>
+                  <div
+                    className={`${
+                      messageDisplay === "compact" ? "w-9 h-9" : "w-11 h-11"
+                    } rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-900/30 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3`}
+                  >
+                    <span
+                      className={`text-white font-bold ${
+                        messageDisplay === "compact" ? "text-sm" : "text-base"
+                      }`}
+                    >
                       {message.senderName.charAt(0).toUpperCase()}
                     </span>
                   </div>
                 ) : (
-                  <div className={`${messageDisplay === 'compact' ? 'w-9' : 'w-11'} flex-shrink-0`} />
+                  <div
+                    className={`${
+                      messageDisplay === "compact" ? "w-9" : "w-11"
+                    } flex-shrink-0`}
+                  />
                 )}
 
                 <div className="flex-1 min-w-0">
                   {showAvatar && (
-                    <div className={`flex items-baseline gap-2 ${messageDisplay === 'compact' ? 'mb-0' : 'mb-1'}`}>
-                      <span className={`font-semibold ${messageDisplay === 'compact' ? 'text-xs' : 'text-sm'} ${isOwnMessage ? 'text-indigo-400' : 'text-white'}`}>
+                    <div
+                      className={`flex items-baseline gap-2 ${
+                        messageDisplay === "compact" ? "mb-0" : "mb-1"
+                      }`}
+                    >
+                      <span
+                        className={`font-semibold ${
+                          messageDisplay === "compact" ? "text-xs" : "text-sm"
+                        } ${isOwnMessage ? "text-indigo-400" : "text-white"}`}
+                      >
                         {message.senderName}
                       </span>
                       {showTimestamps && (
-                        <span className={`text-gray-400 ${messageDisplay === 'compact' ? 'text-[10px]' : 'text-xs'}`}>
+                        <span
+                          className={`text-gray-400 ${
+                            messageDisplay === "compact"
+                              ? "text-[10px]"
+                              : "text-xs"
+                          }`}
+                        >
                           {new Date(message.timestamp).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
+                            hour: "2-digit",
+                            minute: "2-digit",
                           })}
                         </span>
                       )}
                       {message.isEdited && (
-                        <span className={`text-gray-500 ${messageDisplay === 'compact' ? 'text-[10px]' : 'text-xs'}`}>(edited)</span>
+                        <span
+                          className={`text-gray-500 ${
+                            messageDisplay === "compact"
+                              ? "text-[10px]"
+                              : "text-xs"
+                          }`}
+                        >
+                          (edited)
+                        </span>
                       )}
                     </div>
                   )}
 
                   {message.isDeleted ? (
-                    <p className={`text-gray-500 ${messageDisplay === 'compact' ? 'text-xs' : 'text-sm'} italic`}>Message deleted</p>
+                    <div
+                      className={`flex items-center gap-2 ${
+                        messageDisplay === "compact" ? "text-xs" : "text-sm"
+                      } animate-in fade-in duration-200`}
+                    >
+                      <svg
+                        className="w-4 h-4 text-gray-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                      <p className="text-gray-500 italic">
+                        This message was deleted
+                      </p>
+                    </div>
                   ) : (
                     <>
                       <MessageContent
@@ -368,20 +495,29 @@ export default function ChatArea({
                         getMediaUrl={getMediaUrl}
                         fetchAuthenticatedMedia={fetchAuthenticatedMedia}
                         onImageClick={handleImageClick}
-                        className={`text-gray-200 ${messageDisplay === 'compact' ? 'text-xs' : 'text-sm'} break-words`}
+                        className={`text-gray-200 ${
+                          messageDisplay === "compact" ? "text-xs" : "text-sm"
+                        } break-words`}
                       />
 
                       {/* Reactions */}
                       {message.reactions && message.reactions.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {message.reactions.map((reaction) => (
+                          {message.reactions.map((reaction, reactionIndex) => (
                             <button
                               key={reaction.key}
-                              onClick={() => onReact(message.eventId, reaction.key)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800/80 hover:bg-indigo-600/20 hover:border-indigo-500/50 border border-gray-700/50 rounded-full text-sm transition-all duration-200 shadow-sm hover:shadow-md hover:scale-105 active:scale-95"
+                              onClick={() =>
+                                onReact(message.eventId, reaction.key)
+                              }
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800/80 hover:bg-indigo-600/20 hover:border-indigo-500/50 border border-gray-700/50 rounded-full text-sm transition-all duration-200 shadow-sm hover:shadow-md hover:scale-110 active:scale-95 animate-in zoom-in duration-200"
+                              style={{
+                                animationDelay: `${reactionIndex * 50}ms`,
+                              }}
                             >
                               <span className="text-base">{reaction.key}</span>
-                              <span className="text-gray-400 font-semibold text-xs">{reaction.count}</span>
+                              <span className="text-gray-400 font-semibold text-xs">
+                                {reaction.count}
+                              </span>
                             </button>
                           ))}
                         </div>
@@ -398,7 +534,7 @@ export default function ChatArea({
                       onReact={() => setShowReactionPicker(message.eventId)}
                       onEdit={() => setEditingMessage(message)}
                       onDelete={() => {
-                        if (confirm('Delete this message?')) {
+                        if (confirm("Delete this message?")) {
                           onDelete(message.eventId);
                         }
                       }}
@@ -408,7 +544,9 @@ export default function ChatArea({
                     {showReactionPicker === message.eventId && (
                       <div className="absolute bottom-full left-12 mb-2">
                         <ReactionPicker
-                          onSelectEmoji={(emoji) => onReact(message.eventId, emoji)}
+                          onSelectEmoji={(emoji) =>
+                            onReact(message.eventId, emoji)
+                          }
                           onClose={() => setShowReactionPicker(null)}
                         />
                       </div>
@@ -436,14 +574,26 @@ export default function ChatArea({
 
       {/* Typing Indicator */}
       {typingUsers && typingUsers.length > 0 && (
-        <div className="px-3 sm:px-4 md:px-6 py-2">
+        <div className="px-3 sm:px-4 md:px-6 py-2 animate-in slide-in-from-bottom-2 fade-in duration-200">
           <div className="text-xs text-gray-400 flex items-center gap-2">
             <span className="flex gap-1">
-              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
-              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
-              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
+              <span
+                className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
+                style={{ animationDelay: "0ms" }}
+              ></span>
+              <span
+                className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
+                style={{ animationDelay: "150ms" }}
+              ></span>
+              <span
+                className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
+                style={{ animationDelay: "300ms" }}
+              ></span>
             </span>
-            <span>{formatTypingUsers(typingUsers)} {typingUsers.length === 1 ? 'is' : 'are'} typing...</span>
+            <span>
+              {formatTypingUsers(typingUsers)}{" "}
+              {typingUsers.length === 1 ? "is" : "are"} typing...
+            </span>
           </div>
         </div>
       )}
@@ -462,11 +612,21 @@ export default function ChatArea({
       {/* Message Input */}
       <div className="px-3 sm:px-4 md:px-6 pb-4 sm:pb-6 pt-2 bg-gradient-to-t from-gray-800 to-transparent">
         {isUploading && (
-          <div className="mb-3 px-4 py-2 bg-indigo-600/20 border border-indigo-500/30 rounded-lg">
+          <div className="mb-3 px-4 py-2 bg-indigo-600/20 border border-indigo-500/30 rounded-lg animate-in slide-in-from-top-2 fade-in duration-300">
             <div className="flex items-center gap-3 text-indigo-300 text-sm">
               <div className="animate-spin">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
                 </svg>
               </div>
               <span>Uploading file...</span>
@@ -476,7 +636,7 @@ export default function ChatArea({
 
         {/* File Preview */}
         {selectedFile && !isUploading && (
-          <div className="mb-3 px-4 py-3 bg-gray-700/60 border border-gray-600/50 rounded-lg">
+          <div className="mb-3 px-4 py-3 bg-gray-700/60 border border-gray-600/50 rounded-lg animate-in slide-in-from-bottom-2 fade-in duration-300">
             <div className="flex items-start gap-3">
               {/* Preview */}
               <div className="flex-shrink-0">
@@ -484,12 +644,22 @@ export default function ChatArea({
                   <img
                     src={filePreviewUrl}
                     alt={selectedFile.name}
-                    className="w-16 h-16 rounded-lg object-cover shadow-md"
+                    className="w-16 h-16 rounded-lg object-cover shadow-md transition-all duration-300 hover:scale-110"
                   />
                 ) : (
-                  <div className="w-16 h-16 bg-indigo-600/20 rounded-lg flex items-center justify-center">
-                    <svg className="w-8 h-8 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  <div className="w-16 h-16 bg-indigo-600/20 rounded-lg flex items-center justify-center transition-all duration-300 hover:scale-110">
+                    <svg
+                      className="w-8 h-8 text-indigo-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                      />
                     </svg>
                   </div>
                 )}
@@ -497,23 +667,37 @@ export default function ChatArea({
 
               {/* File Info */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-white font-medium truncate">{selectedFile.name}</p>
+                <p className="text-sm text-white font-medium truncate">
+                  {selectedFile.name}
+                </p>
                 <p className="text-xs text-gray-400">
                   {(selectedFile.size / 1024).toFixed(1)} KB
-                  {selectedFile.type && ` • ${selectedFile.type.split('/')[1]}`}
+                  {selectedFile.type && ` • ${selectedFile.type.split("/")[1]}`}
                 </p>
-                <p className="text-xs text-indigo-400 mt-1">Click send to upload</p>
+                <p className="text-xs text-indigo-400 mt-1">
+                  Click send to upload
+                </p>
               </div>
 
               {/* Remove Button */}
               <button
                 type="button"
                 onClick={handleRemoveFile}
-                className="flex-shrink-0 p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
+                className="flex-shrink-0 p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95"
                 title="Remove file"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -554,7 +738,9 @@ export default function ChatArea({
             type="text"
             value={inputMessage}
             onChange={handleInputChange}
-            placeholder={selectedFile ? "Add a caption (optional)" : `Message ${room.name}`}
+            placeholder={
+              selectedFile ? "Add a caption (optional)" : `Message ${room.name}`
+            }
             className="flex-1 px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-3.5 bg-gray-600/80 text-white text-sm sm:text-base rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:bg-gray-600 border border-gray-600 focus:border-indigo-500/50 transition-all duration-200 shadow-inner placeholder-gray-400"
           />
           <button

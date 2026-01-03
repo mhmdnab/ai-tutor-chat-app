@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { matrixClient } from "@/lib/matrix-client";
+import { customChatClient } from "@/lib/custom-client";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -40,7 +40,7 @@ export default function SettingsModal({ isOpen, onClose, userId }: SettingsModal
   useEffect(() => {
     if (isOpen) {
       // Load display name
-      matrixClient.getDisplayName().then((name) => {
+      customChatClient.getDisplayName().then((name: string | null) => {
         if (name) setDisplayName(name);
       });
     }
@@ -52,7 +52,7 @@ export default function SettingsModal({ isOpen, onClose, userId }: SettingsModal
 
       // Save display name if changed
       if (displayName.trim()) {
-        await matrixClient.setDisplayName(displayName.trim());
+        await customChatClient.setDisplayName(displayName.trim());
         displayNameSaved = true;
       }
 
@@ -423,9 +423,9 @@ export default function SettingsModal({ isOpen, onClose, userId }: SettingsModal
                   <span className="text-white">1.0.0</span>
                 </div>
                 <div className="flex justify-between px-3 py-2 bg-gray-700/50 rounded">
-                  <span className="text-gray-400">Homeserver</span>
+                  <span className="text-gray-400">Platform</span>
                   <span className="text-white font-mono text-xs">
-                    matrix.org
+                    Custom Chat
                   </span>
                 </div>
               </div>

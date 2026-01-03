@@ -1,17 +1,29 @@
-import { Member } from '@/lib/matrix-client';
+import { Member } from '@/lib/custom-client';
 
 interface MemberListProps {
   members: Member[];
+  onInviteUser?: () => void;
 }
 
-export default function MemberList({ members }: MemberListProps) {
+export default function MemberList({ members, onInviteUser }: MemberListProps) {
   return (
     <div className="w-full sm:w-72 xl:w-60 bg-gray-800 border-l border-gray-700 h-full flex flex-col">
       {/* Header */}
-      <div className="h-14 sm:h-16 px-3 sm:px-4 flex items-center border-b border-gray-700 flex-shrink-0">
+      <div className="h-14 sm:h-16 px-3 sm:px-4 flex items-center justify-between border-b border-gray-700 flex-shrink-0">
         <h3 className="text-white font-semibold text-sm sm:text-base">
           Members — {members.length}
         </h3>
+        {onInviteUser && (
+          <button
+            onClick={onInviteUser}
+            className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
+            title="Invite user to this room"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Members List */}
