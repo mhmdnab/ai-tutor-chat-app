@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   // Optimize for production builds
   experimental: {
     optimizeCss: true,
-    optimizePackageImports: ['react', 'react-dom', 'socket.io-client'],
+    optimizePackageImports: ["react", "react-dom", "socket.io-client"],
   },
 
   // Reduce memory usage during builds
@@ -18,9 +18,9 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'matrix.org',
-        pathname: '/_matrix/media/**',
+        protocol: "https",
+        hostname: "matrix.org",
+        pathname: "/_matrix/media/**",
       },
     ],
   },
