@@ -11,9 +11,6 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["react", "react-dom", "socket.io-client"],
   },
 
-  // Reduce memory usage during builds
-  swcMinify: true,
-
   // Allow images from Matrix homeserver
   images: {
     remotePatterns: [
